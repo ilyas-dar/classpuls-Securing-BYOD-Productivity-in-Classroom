@@ -1,25 +1,24 @@
-This repo is for my project “Securing BYOD Productivity in Classroom”.
-I wanted to understand how students use their devices during class (especially in BYOD setups), so I created my own dataset and started building a small ML model around it.
+# ClassPulse
 
-The dataset has around 1200 rows, and each row is basically one “usage event” — like what app was being used, for how long, etc.
-What the dataset contains
+**ML-powered classroom engagement monitoring for BYOD environments.**
 
-#Some of the columns I used:
+ClassPulse uses machine learning to detect student disengagement in real time and gives teachers instant, context-aware suggestions — without monitoring content or violating privacy.
 
-#user_id – just a simulated ID
+## Stack
+- Backend: FastAPI + Uvicorn
+- ML: scikit-learn (Random Forest + IsolationForest)
+- Frontend: HTML / CSS / JS + Chart.js
+- Deploy: Docker + Docker Compose
 
-#device_type – mobile / laptop / tablet
+## Status
+🚧 Active development — building incrementally.
 
-#app_name – the app being used
-
-#app_category – education, coding, notes, LMS, social media, gaming, etc.
-
-#duration_min – how long the app was used
-
-#class_subject – subject going on during that time
-
-#time_slot – morning / afternoon / evening
-
-#tab_switch_count – how often the student switched tabs
-
-#is_productive – 1 = productive, 0 = not
+## Structure (in progress)
+\`\`\`
+classpulse/
+├── backend/        # FastAPI + ML models
+├── frontend/       # Teacher dashboard
+├── ml_pipeline/    # Training scripts
+├── tests/          # Test suite
+└── docker/         # Deployment
+\`\`\`
