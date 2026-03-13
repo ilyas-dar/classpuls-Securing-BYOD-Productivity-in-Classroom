@@ -33,5 +33,12 @@ class AnomalyDetector:
             switch_inactivity, keystroke_collab
         ]])
         
-        
+    def score(self, activity_dict):
+        # returns anomaly score,anything above 1.0 is flagged
+        if self.model is None:
+            return 0.0
+        X = self.prepare_features(activity_dict)
+        X_scaled = self.scaler.transform(X)
+        raw = -self.model.decision_function(X_scaled)[0]
+        return float(raw / (self.threshold + 1e-9))      
 # rest code will be done tommorow!
