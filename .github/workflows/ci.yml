@@ -1,0 +1,52 @@
+name: ClassPulse CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: classpulse
+          POSTGRES_USER: classpulse_user
+          POSTGRES_PASSWORD: classpulse_dev_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Set environment variables
+        run: |
+          echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql://classpulse_user:classpulse_dev_password@localhost:5432/classpulse" >> $GITHUB_ENV
+          echo "SECRET_KEY=test-secret-key" >> $GITHUB_ENV
+          echo "MODEL_PATH=ml_pipeline/models/saved_models" >> $GITHUB_ENV
+          echo "ALLOWED_ORIGINS=http://localhost" >> $GITHUB_ENV
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Show coverage
+        run: pytest tests/ --cov=backend --cov-report=term-missing
