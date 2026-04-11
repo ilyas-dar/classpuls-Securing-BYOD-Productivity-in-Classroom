@@ -1,0 +1,101 @@
+# docker/docker-compose.yml
+# ============================================================
+# ClassPulse local development stack.
+#
+# Services:
+#   db       — PostgreSQL (persistent data)
+#   redis    — Redis (WebSocket pub/sub at scale)
+#   backend  — FastAPI (our ML API)
+#   frontend — nginx serving the teacher dashboard
+#
+# Usage:
+#   cd docker
+#   docker-compose up --build
+#
+# First time only (train models):
+#   docker-compose run --rm backend python -m backend.data.synthetic_data_generator
+#   docker-compose run --rm backend python -m ml_pipeline.training.train_baseline
+#   docker-compose run --rm backend python -m ml_pipeline.training.train_anomaly
+# ============================================================
+
+version: "3.9"
+
+services:
+
+  # ── PostgreSQL ────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: classpulse
+      POSTGRES_USER: classpulse_user
+      POSTGRES_PASSWORD: classpulse_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"          # exposed so you can connect with pgAdmin locally
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U classpulse_user -d classpulse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Redis ─────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── Backend (FastAPI) ─────────────────────────────────────
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: development
+      SECRET_KEY: dev-secret-key-change-in-production
+      DATABASE_URL: postgresql://classpulse_user:classpulse_dev_password@db:5432/classpulse
+      REDIS_URL: redis://redis:6379
+      MODEL_PATH: /app/ml_pipeline/models/saved_models
+      ALLOWED_ORIGINS: "http://localhost,http://localhost:80,http://localhost:8080"
+    volumes:
+      - model_data:/app/ml_pipeline/models/saved_models  # persist trained models
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Frontend (nginx) ──────────────────────────────────────
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+
+networks:
+  default:
+    name: classpulse-network
+
+volumes:
+  postgres_data:   # DB data survives container restarts
+  model_data:      # Trained model files persist

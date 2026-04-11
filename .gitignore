@@ -1,0 +1,56 @@
+# ============================================================
+# ClassPulse .gitignore
+# ============================================================
+
+# --- Environment / Secrets ---
+.env
+*.env.local
+*.env.production
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+*.pyc
+
+# --- ML model artifacts (large files — use DVC or S3 in production) ---
+ml_pipeline/models/saved_models/*.pkl
+ml_pipeline/models/saved_models/*.h5
+ml_pipeline/models/saved_models/*.keras
+
+# --- Data files (keep generators, not generated data) ---
+backend/data/*.csv
+backend/data/*.json
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+
+# --- Docker ---
+.docker/
+
+# --- Node (if ever needed for frontend tooling) ---
+node_modules/
+npm-debug.log*
+
+# --- Logs ---
+*.log
+logs/

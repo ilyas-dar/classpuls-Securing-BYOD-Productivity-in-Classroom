@@ -1,0 +1,47 @@
+# docker/Dockerfile.backend
+# ============================================================
+# Multi-stage build:
+#   Stage 1 (builder): install Python dependencies
+#   Stage 2 (runtime): copy only what's needed → smaller image
+# ============================================================
+
+# ── Stage 1: builder ──────────────────────────────────────
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+# System deps for psycopg2, TensorFlow
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ libpq-dev curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+
+# ── Stage 2: runtime ──────────────────────────────────────
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Runtime system deps only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder
+COPY --from=builder /install /usr/local
+
+# Copy application code
+COPY backend/   /app/backend/
+COPY ml_pipeline/ /app/ml_pipeline/
+
+# PYTHONPATH must include /app so that
+# "from backend.xxx import yyy" works everywhere
+ENV PYTHONPATH=/app
+
+EXPOSE 8000
+
+# --reload is fine for dev; remove for production
+CMD ["uvicorn", "backend.api.endpoints:app", \
+     "--host", "0.0.0.0", "--port", "8000", "--reload"]
